@@ -39,3 +39,5 @@ from ai.brain import respond
 # inside loop
 response = respond(action)
 print("AI:", response)
+
+from ai.memory import get_answer, add_memory
