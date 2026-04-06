@@ -1,1 +1,50 @@
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Environment variables (SECURITY)
+.env
+
+# Logs
+*.log
+logs/
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+.pytest_cache/
+.coverage
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Distribution / build
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Node (future use)
+node_modules/
+
+# Secret / config backups
+config/*.bak
