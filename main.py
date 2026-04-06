@@ -33,3 +33,9 @@ if action == "STOP":
     print("SYSTEM SHUTDOWN 🚨")
     log("System stopped by admin")
     break
+
+from ai.brain import respond
+
+# inside loop
+response = respond(action)
+print("AI:", response)
