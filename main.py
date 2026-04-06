@@ -144,15 +144,4 @@ while True:
             log(f"Not saved: {action}")
 
 
-# ================================
-# 🌐 STREAMLIT APP RUN
-# ================================
-print("🚀 Starting Developer Panel...")
 
-subprocess.run([
-    sys.executable,
-    "-m",
-    "streamlit",
-    "run",
-    "developer_app.py"
-])
