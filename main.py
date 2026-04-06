@@ -28,3 +28,8 @@ if login(user, password):
 else:
     print("Login Failed ❌")
     log("Failed login attempt")
+
+if action == "STOP":
+    print("SYSTEM SHUTDOWN 🚨")
+    log("System stopped by admin")
+    break
