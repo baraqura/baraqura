@@ -9,6 +9,9 @@ import datetime
 # ================================
 app = FastAPI()
 
+# আপনার অনুরোধ অনুযায়ী অ্যাপ অবজেক্ট রেফারেন্স
+app = app 
+
 # ================================
 # 🧠 AI BRAIN LOGIC (আপনার পুরানো লজিক)
 # ================================
@@ -24,19 +27,35 @@ def respond(msg):
         return "Tell me more about your need."
 
 # ================================
-# 🌐 WEB ROUTES (ইন্টারনেটে ব্যবহারের জন্য)
+# 📩 API MODELS
 # ================================
-
 class ChatInput(BaseModel):
     message: str
 
+# ================================
+# 🌐 WEB ROUTES (Merged: Old + New Update)
+# ================================
+
 @app.get("/")
-def home():
-    return {"status": "BaraQura AI is Live ✅", "time": str(datetime.datetime.now())}
+def read_root():
+    # এটি আপনার নতুন আপডেট করা অংশ
+    return {
+        "message": "BaraQura AI is Live!",
+        "status": "BaraQura AI is Live ✅",
+        "time": str(datetime.datetime.now())
+    }
+
+@app.get("/status")
+def status():
+    # এটিও নতুন আপডেট করা অংশ
+    return {
+        "status": "Running",
+        "db": "connected"
+    }
 
 @app.post("/chat")
 def chat(data: ChatInput):
-    # input() এর বদলে এখানে ডাটা রিসিভ করা হচ্ছে
+    # আপনার আগের চ্যাট লজিক এখানে অক্ষুণ্ণ রাখা হয়েছে
     response = respond(data.message)
     return {
         "user": data.message,
