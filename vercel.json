@@ -1,15 +1,13 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "main.py",
-      "use": "@vercel/python"
+  "functions": {
+    "main.py": {
+      "runtime": "@vercel/python"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "main.py"
+      "source": "/(.*)",
+      "destination": "main.py"
     }
   ]
 }
