@@ -2,29 +2,30 @@ from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 import os
 import datetime
-# ডাটাবেস কানেকশন ইমপোর্ট (আপনার ফোল্ডার স্ট্রাকচার অনুযায়ী বড় হাতের 'App')
-try:
-    from App.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
-except ImportError:
-    # যদি ফোল্ডার নাম ছোট হাতের হয় তবে তার জন্য ব্যাকআপ
-    from app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
 
+# আপনার ডাটাবেস ইমপোর্ট লজিক
+try:
+    from app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
+except ImportError:
+    # ব্যাকআপ হিসেবে যদি কোনো কারণে পাথ না পায়
+    from App.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
+
+# অ্যাপ ইনিশিয়ালাইজেশন
 app = FastAPI()
 
-# ভার্সেল থেকে সিক্রেট কি নেওয়া
+# ভার্সেল এনভায়রনমেন্ট থেকে সিক্রেট কি
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# সার্ভার স্টার্ট হওয়ার সময় ডাটাবেস কানেক্ট হবে
+# ডাটাবেস কানেকশন ইভেন্টস
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
 
-# সার্ভার বন্ধ হওয়ার সময় কানেকশন কাটবে
 @app.on_event("shutdown")
 async def shutdown_event():
     await close_mongo_connection()
 
-# 🧠 AI BRAIN LOGIC
+# 🧠 AI ব্রেইন লজিক
 def respond(msg: str):
     msg = msg.lower()
     if "price" in msg:
@@ -36,15 +37,20 @@ def respond(msg: str):
     else:
         return "BaraQura V10 is thinking... Tell me more about your need."
 
-# API মডেল
+# ডাটা মডেল
 class ChatInput(BaseModel):
     message: str
     master_key: str = None
 
-# ওয়েব রুট (হোম পেজ) - এটিই Vercel প্রথমে চেক করবে
+# হোম রুট
 @app.get("/")
 def read_root():
-    db_status = "Connected ✅" if db_instance.client else "Disconnected ❌"
+    # ডাটাবেস কানেকশন চেক
+    try:
+        db_status = "Connected ✅" if db_instance.client else "Disconnected ❌"
+    except:
+        db_status = "Status Unknown ⚠️"
+        
     return {
         "message": "BaraQura AI V10 is Live!",
         "status": "Online ✅",
@@ -59,12 +65,11 @@ async def chat(data: ChatInput):
     if data.master_key != SECRET_KEY:
         raise HTTPException(status_code=403, detail="Invalid Master Key!")
     
-    # রেসপন্স নেওয়া হচ্ছে
+    # রেসপন্স জেনারেট করা
     response = respond(data.message)
     
     return {
         "user": data.message,
         "ai_response": response,
-        "db_status": "Syncing..." if db_instance.client else "Offline",
         "log": f"V10 Processed at {datetime.datetime.now()}"
     }
