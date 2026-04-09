@@ -2,8 +2,12 @@ from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 import os
 import datetime
-# ডাটাবেস কানেকশন ইমপোর্ট করা হচ্ছে
-from app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
+# ডাটাবেস কানেকশন ইমপোর্ট (আপনার ফোল্ডার স্ট্রাকচার অনুযায়ী বড় হাতের 'App')
+try:
+    from App.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
+except ImportError:
+    # যদি ফোল্ডার নাম ছোট হাতের হয় তবে তার জন্য ব্যাকআপ
+    from app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
 
 app = FastAPI()
 
@@ -20,7 +24,7 @@ async def startup_event():
 async def shutdown_event():
     await close_mongo_connection()
 
-# 🧠 AI BRAIN LOGIC (আপনার পুরনো লজিক ফিরিয়ে আনা হলো)
+# 🧠 AI BRAIN LOGIC
 def respond(msg: str):
     msg = msg.lower()
     if "price" in msg:
@@ -37,13 +41,14 @@ class ChatInput(BaseModel):
     message: str
     master_key: str = None
 
-# ওয়েব রুট (হোম পেজ)
+# ওয়েব রুট (হোম পেজ) - এটিই Vercel প্রথমে চেক করবে
 @app.get("/")
 def read_root():
+    db_status = "Connected ✅" if db_instance.client else "Disconnected ❌"
     return {
         "message": "BaraQura AI V10 is Live!",
         "status": "Online ✅",
-        "database": "Connected ✅" if db_instance.client else "Disconnected ❌",
+        "database": db_status,
         "timestamp": str(datetime.datetime.now())
     }
 
@@ -54,7 +59,7 @@ async def chat(data: ChatInput):
     if data.master_key != SECRET_KEY:
         raise HTTPException(status_code=403, detail="Invalid Master Key!")
     
-    # আপনার পুরনো লজিক থেকে রেসপন্স নেওয়া হচ্ছে
+    # রেসপন্স নেওয়া হচ্ছে
     response = respond(data.message)
     
     return {
