@@ -1,4 +1,4 @@
-from app.core.main import app
+from App.core.main import app
 
-# Vercel কে সরাসরি অ্যাপটি চিনিয়ে দেওয়া
+# এটি Vercel কে সরাসরি অ্যাপ চিনিয়ে দেবে
 app = app
