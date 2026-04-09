@@ -1,8 +1,12 @@
 import sys
 import os
 
-# আপনার মেইন ফোল্ডার পাথ সেট করা
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-# এখানে 'main' এর পরে স্পেস হবে, ডট নয়
-from app.core.main import app
+try:
+    # পথ চিনিয়ে দেওয়া
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from app.core.main import app
+    print("V10 App loaded successfully!")
+except Exception as e:
+    print(f"ERROR LOCATED: {e}")
+    # এটি ভুল খুঁজে পেতে সাহায্য করবে
+    raise e
