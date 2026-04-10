@@ -105,3 +105,33 @@ async def test_conn():
 # --- VERCEL DEPLOYMENT HANDLER ---
 # এই লাইনটিই ভেরসেলকে অ্যাপটি রান করতে সাহায্য করবে
 app = app
+
+# আগের ইমপোর্টগুলো থাকবে...
+
+app = FastAPI()
+
+# মঙ্গোডিবি ক্লায়েন্টকে গ্লোবাল না রেখে ফাংশনের ভেতর চেক করবো
+async def get_db():
+    uri = os.getenv("MONGO_URI")
+    if not uri:
+        return None
+    client = motor.motor_asyncio.AsyncIOMotorClient(
+        uri, 
+        serverSelectionTimeoutMS=2000 # ২ সেকেন্ডের বেশি ওয়েট করবে না
+    )
+    return client
+
+@app.get("/")
+async def read_root():
+    return {
+        "project": "BaraQura V10",
+        "status": "Online 🚀",
+        "time": str(datetime.datetime.now())
+    }
+
+# একদম শেষে এই ৩টি লাইন নিশ্চিত করো
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+app = app # ভেরসেলের জন্য
