@@ -22,7 +22,7 @@ async def startup_event():
     global client, db
     if MONGO_URI:
         try:
-            # TLS/SSL এবং DNS ইস্যু এড়াতে সেটিংস
+            # TLS/SSL এবং DNS ইস্যু এড়াতে সেটিংস
             client = motor.motor_asyncio.AsyncIOMotorClient(
                 MONGO_URI, 
                 serverSelectionTimeoutMS=5000,
@@ -101,3 +101,7 @@ async def test_conn():
         return JSONResponse(content={"status": "Online", "version": server_info.get('version')})
     except Exception as e:
         return JSONResponse(content={"status": "Offline", "error": str(e)})
+
+# --- VERCEL DEPLOYMENT HANDLER ---
+# এই লাইনটিই ভেরসেলকে অ্যাপটি রান করতে সাহায্য করবে
+app = app
