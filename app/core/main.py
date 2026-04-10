@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import os
 import datetime
@@ -49,7 +50,7 @@ class ChatInput(BaseModel):
     message: str
     master_key: str = None
 
-# হোম রুট (স্ট্যাটাস চেক করার জন্য)
+# হোম রুট (সাদা স্ক্রিন এড়ানোর জন্য JSONResponse ব্যবহার করা হয়েছে)
 @app.get("/")
 async def read_root():
     db_status = "Disconnected ❌"
@@ -60,15 +61,16 @@ async def read_root():
         except:
             db_status = "Auth/Network Failed ⚠️"
 
-    return {
+    return JSONResponse(content={
         "project": "BaraQura V10",
+        "status": "Live 🚀",
         "database": db_status,
         "env_check": {
             "MONGO_URI_FOUND": MONGO_URI is not None,
             "SECRET_KEY_FOUND": SECRET_KEY is not None
         },
         "time": str(datetime.datetime.now())
-    }
+    })
 
 # তোমার আগের চ্যাট এন্ডপয়েন্ট (এখন IP ট্র্যাকিং সহ)
 @app.post("/chat")
@@ -92,10 +94,10 @@ async def chat(data: ChatInput, request: Request):
 @app.get("/v10/test-connection")
 async def test_conn():
     if not MONGO_URI:
-        return {"error": "MONGO_URI missing in Vercel!"}
+        return JSONResponse(content={"error": "MONGO_URI missing in Vercel!"})
     try:
         temp_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=3000)
         server_info = await temp_client.server_info()
-        return {"status": "Online", "version": server_info.get('version')}
+        return JSONResponse(content={"status": "Online", "version": server_info.get('version')})
     except Exception as e:
-        return {"status": "Offline", "error": str(e)}
+        return JSONResponse(content={"status": "Offline", "error": str(e)})
