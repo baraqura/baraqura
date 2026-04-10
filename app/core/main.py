@@ -4,9 +4,10 @@ import os
 import datetime
 import motor.motor_asyncio
 
+# অ্যাপ ইনিশিয়ালাইজেশন
 app = FastAPI()
 
-# এনভায়রনমেন্ট ভেরিয়েবল
+# এনভায়রনমেন্ট ভেরিয়েবল (ভার্সেল থেকে আসবে)
 SECRET_KEY = os.getenv("SECRET_KEY")
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME", "baraqura_db")
@@ -20,7 +21,7 @@ async def startup_event():
     global client, db
     if MONGO_URI:
         try:
-            # TLS/SSL এরর এড়াতে কিছু এক্সট্রা প্যারামিটার যোগ করা হয়েছে
+            # TLS/SSL এবং DNS ইস্যু এড়াতে সেটিংস
             client = motor.motor_asyncio.AsyncIOMotorClient(
                 MONGO_URI, 
                 serverSelectionTimeoutMS=5000,
@@ -31,9 +32,26 @@ async def startup_event():
         except Exception as e:
             print(f"DB Init Error: {e}")
 
+# 🧠 তোমার আগের AI ব্রেইন লজিক (যা আমি এখানে রেখে দিয়েছি)
+def respond(msg: str):
+    msg = msg.lower()
+    if "price" in msg:
+        return "Our price is best for quality. (V10 Optimized)"
+    elif "buy" in msg:
+        return "Great! Let's proceed with your order. (V10 Optimized)"
+    elif "delivery" in msg:
+        return "We provide fast delivery service. (V10 Optimized)"
+    else:
+        return "BaraQura V10 is thinking... Tell me more about your need."
+
+# ডাটা মডেল
+class ChatInput(BaseModel):
+    message: str
+    master_key: str = None
+
+# হোম রুট (স্ট্যাটাস চেক করার জন্য)
 @app.get("/")
 async def read_root():
-    # লাইভ কানেকশন চেক
     db_status = "Disconnected ❌"
     if client:
         try:
@@ -46,13 +64,31 @@ async def read_root():
         "project": "BaraQura V10",
         "database": db_status,
         "env_check": {
-            "MONGO_URI": "Found" if MONGO_URI else "Missing",
-            "SECRET_KEY": "Found" if SECRET_KEY else "Missing"
+            "MONGO_URI_FOUND": MONGO_URI is not None,
+            "SECRET_KEY_FOUND": SECRET_KEY is not None
         },
         "time": str(datetime.datetime.now())
     }
 
-# ডিবগ এন্ডপয়েন্ট
+# তোমার আগের চ্যাট এন্ডপয়েন্ট (এখন IP ট্র্যাকিং সহ)
+@app.post("/chat")
+async def chat(data: ChatInput, request: Request):
+    client_ip = request.client.host
+    
+    # মাস্টার কি ভেরিফিকেশন
+    if data.master_key != SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Invalid Master Key!")
+    
+    # রেসপন্স জেনারেট করা
+    response = respond(data.message)
+    
+    return {
+        "user_ip": client_ip,
+        "ai_response": response,
+        "status": "SECURED_BY_V10"
+    }
+
+# ডিবগ এন্ডপয়েন্ট (কানেকশন টেস্ট করার জন্য)
 @app.get("/v10/test-connection")
 async def test_conn():
     if not MONGO_URI:
