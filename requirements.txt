@@ -12,3 +12,5 @@ google-generativeai==0.4.1
 openai==1.14.3
 python-jose[cryptography]==3.3.0
 
+
+
