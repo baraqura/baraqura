@@ -2,80 +2,64 @@ from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 import os
 import datetime
-import logging
-
-# লগিং সেটআপ যাতে এরর বোঝা যায়
-logger = logging.getLogger("v10_debug")
-
-try:
-    from app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
-except ImportError:
-    from App.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
+import motor.motor_asyncio
 
 app = FastAPI()
 
-# ভার্সেল থেকে ভেরিয়েবল রিড করা
+# এনভায়রনমেন্ট ভেরিয়েবল
 SECRET_KEY = os.getenv("SECRET_KEY")
-MONGO_URI = os.getenv("MONGO_URI") # নিশ্চিত করো ভার্সেলে এই নামেই আছে
+MONGO_URI = os.getenv("MONGO_URI")
+DB_NAME = os.getenv("DB_NAME", "baraqura_db")
+
+# গ্লোবাল ডাটাবেজ ক্লায়েন্ট
+client = None
+db = None
 
 @app.on_event("startup")
 async def startup_event():
-    # মঙ্গোডিবি কানেকশন ট্রাই করা
-    try:
-        await connect_to_mongo()
-        print("V10: Database Connection Attempted")
-    except Exception as e:
-        logger.error(f"DB Connection Error: {e}")
+    global client, db
+    if MONGO_URI:
+        try:
+            # TLS/SSL এরর এড়াতে কিছু এক্সট্রা প্যারামিটার যোগ করা হয়েছে
+            client = motor.motor_asyncio.AsyncIOMotorClient(
+                MONGO_URI, 
+                serverSelectionTimeoutMS=5000,
+                tlsInsecure=True 
+            )
+            db = client[DB_NAME]
+            print("V10 Sentinel: Database logic initialized.")
+        except Exception as e:
+            print(f"DB Init Error: {e}")
 
 @app.get("/")
-def read_root():
-    # কানেকশন স্ট্যাটাস চেক করার সহজ উপায়
-    db_alive = False
-    try:
-        if db_instance.client:
-            db_alive = True
-    except:
-        pass
-        
+async def read_root():
+    # লাইভ কানেকশন চেক
+    db_status = "Disconnected ❌"
+    if client:
+        try:
+            await client.admin.command('ping')
+            db_status = "Connected ✅"
+        except:
+            db_status = "Auth/Network Failed ⚠️"
+
     return {
-        "message": "BaraQura AI V10",
-        "database_connected": db_alive,
-        "env_key_found": SECRET_KEY is not None,
-        "mongo_uri_found": MONGO_URI is not None,
-        "timestamp": str(datetime.datetime.now())
+        "project": "BaraQura V10",
+        "database": db_status,
+        "env_check": {
+            "MONGO_URI": "Found" if MONGO_URI else "Missing",
+            "SECRET_KEY": "Found" if SECRET_KEY else "Missing"
+        },
+        "time": str(datetime.datetime.now())
     }
 
-# --- স্পেশাল ডিবগ লিঙ্ক (এটা চেক করলেই বুঝবো সমস্যা কোথায়) ---
-@app.get("/v10/fix-db")
-async def fix_db():
-    import motor.motor_asyncio
+# ডিবগ এন্ডপয়েন্ট
+@app.get("/v10/test-connection")
+async def test_conn():
+    if not MONGO_URI:
+        return {"error": "MONGO_URI missing in Vercel!"}
     try:
-        if not MONGO_URI:
-            return {"error": "MONGO_URI missing in Vercel settings!"}
-        
-        # সরাসরি টেস্ট কানেকশন
-        test_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        info = await test_client.server_info() # এটা কানেকশন চেক করে
-        
-        return {
-            "status": "Success ✅",
-            "server_info": "Connected to MongoDB Atlas",
-            "db_version": info.get('version')
-        }
+        temp_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+        server_info = await temp_client.server_info()
+        return {"status": "Online", "version": server_info.get('version')}
     except Exception as e:
-        return {
-            "status": "Failed ❌",
-            "error_message": str(e),
-            "advice": "Check if IP 0.0.0.0/0 is allowed in MongoDB Atlas Network Access"
-        }
-
-# তোমার পুরনো চ্যাট এন্ডপয়েন্ট আগের মতোই থাকবে
-class ChatInput(BaseModel):
-    message: str
-    master_key: str = None
-
-@app.post("/chat")
-async def chat(data: ChatInput):
-    if data.master_key != SECRET_KEY:
-        raise HTTPException(status_code=403, detail="Invalid Key")
-    return {"ai_response": "Engine is stabilizing. Check /v10/fix-db first."}
+        return {"status": "Offline", "error": str(e)}
