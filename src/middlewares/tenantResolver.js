@@ -1,30 +1,34 @@
 const Tenant = require('../models/Tenant');
 
 const tenantResolver = async (req, res, next) => {
-    // হেডার থেকে API Key এবং Secret রিড করা
     const apiKey = req.headers['x-api-key'];
     const apiSecret = req.headers['x-api-secret'];
 
-    // ১. চাবি আছে কি না চেক করা
+    // ১. Vercel-এ সেভ করা আপনার Master Key চেক করা
+    // ধরে নিচ্ছি Vercel-এ আপনার Key-র নাম MASTER_API_KEY এবং Secret-এর নাম MASTER_API_SECRET
+    const masterKey = process.env.MASTER_API_KEY; 
+    const masterSecret = process.env.MASTER_API_SECRET;
+
+    if (apiKey === masterKey && apiSecret === masterSecret) {
+        // আপনি মাস্টার কি দিয়েছেন, তাই সরাসরি এক্সেস!
+        req.tenant = { name: "Supreme Leader (Admin)", plan: "god-mode", _id: "admin-001" };
+        return next();
+    }
+
+    // ২. যদি মাস্টার কি না মেলে, তবে চেক করো ডাটাবেজে কোনো ক্লায়েন্ট আছে কি না
     if (!apiKey || !apiSecret) {
-        return res.status(401).json({
-            error: 'Authentication failed. API Key and Secret are required.'
-        });
+        return res.status(401).json({ error: 'Authentication failed. API Key and Secret are required.' });
     }
 
     try {
-        // ২. ডাটাবেজে এই চাবিওয়ালা কোনো ক্লায়েন্ট আছে কি না দেখা
         const tenant = await Tenant.findOne({ apiKey, apiSecret, isActive: true });
 
         if (!tenant) {
-            return res.status(403).json({
-                error: 'Invalid or Inactive API Credentials.'
-            });
+            return res.status(403).json({ error: 'Invalid or Inactive API Credentials.' });
         }
 
-        // ৩. রিকোয়েস্ট অবজেক্টে টেন্যান্টকে সেভ করা (যাতে পরে ব্যবহার করা যায়)
         req.tenant = tenant;
-        next(); // সব ঠিক থাকলে পরের ধাপে যাও
+        next();
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error in Gatekeeper.' });
     }
