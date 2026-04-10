@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const tenantResolver = require('./middlewares/tenantResolver');
+const rateLimiter = require('./middlewares/rateLimiter');
 
 const app = express();
 
@@ -10,19 +11,22 @@ app.disable('x-powered-by');
 app.use(cors());
 app.use(express.json());
 
-// হেলথ চেক (এটি গেটকিপারের বাইরে থাকবে যাতে Vercel চেক করতে পারে)
+// ১. হেলথ চেক (সবার জন্য ওপেন)
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'active', engine: 'V10-Sentinel' });
 });
 
-// মেইন গেটকিপার বসানো (নিচের সব রুট এখন প্রোটেক্টেড)
+// ২. গেটকিপার (ভ্যালিড চাবি ছাড়া ঢোকা নিষেধ)
 app.use(tenantResolver);
 
-// একটি টেস্ট রুট (শুধুমাত্র ভ্যালিড ক্লায়েন্টরা এটি দেখতে পাবে)
+// ৩. রেট-লিমিট (বেশি জোরে চালালে ব্রেক ধরবে)
+app.use(rateLimiter);
+
+// ৪. ভেরিফিকেশন টেস্ট রুট
 app.get('/api/v1/verify', (req, res) => {
     res.status(200).json({
-        message: `Welcome ${req.tenant.name}! Your ${req.tenant.plan} plan is active.`,
-        tenantId: req.tenant._id
+        message: `Welcome ${req.tenant.name}! Access Granted.`,
+        plan: req.tenant.plan
     });
 });
 
