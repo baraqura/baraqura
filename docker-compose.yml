@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # V10 Sentinel API
+  # V10 Sentinel API (Main Application)
   api:
     build: .
     ports:
@@ -13,7 +13,7 @@ services:
       - redis
     restart: always
 
-  # Database
+  # Database (MongoDB - Persistent Storage)
   mongodb:
     image: mongo:latest
     ports:
@@ -21,7 +21,7 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  # Redis (Queue & Cache এর জন্য)
+  # Redis (Queue, Cache & Distributed Intelligence)
   redis:
     image: redis:alpine
     ports:
