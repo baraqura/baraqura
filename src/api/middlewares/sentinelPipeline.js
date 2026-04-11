@@ -2,6 +2,7 @@
 const { trackUsage } = require('../../infrastructure/billing/orchestrator');
 const { aiGuardrail } = require('../../core/ai/guardrail');
 const { aiCircuitBreaker } = require('../../infrastructure/resilience/circuitBreaker');
+const logger = require('../../infrastructure/logging/logger'); // লগার ইম্পোর্ট করা হলো
 
 const sentinelPipeline = async (req, res, next) => {
     try {
@@ -11,16 +12,26 @@ const sentinelPipeline = async (req, res, next) => {
         try {
             await trackUsage(tenant);
         } catch (err) {
+            logger.warn({ event: "BILLING_LIMIT_EXCEEDED", tenantId: tenant.id });
             return res.status(402).json({ error: "Billing limit exceeded. Upgrade your plan." });
         }
 
-        // স্টেপ ২: AI রিস্ক চেক (সার্কিট ব্রেকার দিয়ে)
+        // স্টেপ ২: AI রিস্ক চেক (সার্কিট ব্রেকার দিয়ে)
         const aiResult = await aiCircuitBreaker.fire(req.body);
         
-        // স্টেপ ৩: গার্ডরেল দিয়ে সিদ্ধান্ত নেওয়া
+        // স্টেপ ৩: গার্ডরেল দিয়ে সিদ্ধান্ত নেওয়া
         const finalAction = aiGuardrail(aiResult.riskScore, tenant);
 
-        // স্টেপ ৪: অ্যাকশন অনুযায়ী রেসপন্স
+        // স্টেপ ৪: লগিং (পর্দার আড়ালে কী হচ্ছে তা রেকর্ড করা)
+        logger.info({
+            event: "REQUEST_PROCESSED",
+            tenantId: tenant.id,
+            action: finalAction,
+            risk: aiResult.riskScore,
+            timestamp: new Date().toISOString()
+        });
+
+        // স্টেপ ৫: অ্যাকশন অনুযায়ী রেসপন্স
         if (finalAction === "BLOCK") {
             return res.status(403).json({ 
                 error: "Security Block", 
@@ -39,8 +50,8 @@ const sentinelPipeline = async (req, res, next) => {
         next();
 
     } catch (error) {
-        console.error("Pipeline Error:", error.message);
-        // যদি AI ইঞ্জিন ফেইল করে, আমরা সেফলি এলাউ করে দিব (Fail-Open Strategy)
+        // যদি AI ইঞ্জিন ফেইল করে, এরর লগ করে সেফলি এলাউ করে দিব (Fail-Open)
+        logger.error({ event: "PIPELINE_CRITICAL_ERROR", message: error.message });
         next();
     }
 };
