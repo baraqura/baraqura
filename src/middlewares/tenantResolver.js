@@ -1,36 +1,38 @@
-const Tenant = require('../models/Tenant');
+// src/middlewares/tenantResolver.js
 
 const tenantResolver = async (req, res, next) => {
-    const apiKey = req.headers['x-api-key'];
-    const apiSecret = req.headers['x-api-secret'];
-
-    // ১. Vercel-এ সেভ করা আপনার Master Key চেক করা
-    // ধরে নিচ্ছি Vercel-এ আপনার Key-র নাম MASTER_API_KEY এবং Secret-এর নাম MASTER_API_SECRET
-    const masterKey = process.env.MASTER_API_KEY; 
-    const masterSecret = process.env.MASTER_API_SECRET;
-
-    if (apiKey === masterKey && apiSecret === masterSecret) {
-        // আপনি মাস্টার কি দিয়েছেন, তাই সরাসরি এক্সেস!
-        req.tenant = { name: "Supreme Leader (Admin)", plan: "god-mode", _id: "admin-001" };
-        return next();
-    }
-
-    // ২. যদি মাস্টার কি না মেলে, তবে চেক করো ডাটাবেজে কোনো ক্লায়েন্ট আছে কি না
-    if (!apiKey || !apiSecret) {
-        return res.status(401).json({ error: 'Authentication failed. API Key and Secret are required.' });
-    }
-
     try {
-        const tenant = await Tenant.findOne({ apiKey, apiSecret, isActive: true });
-
-        if (!tenant) {
-            return res.status(403).json({ error: 'Invalid or Inactive API Credentials.' });
+        // ১. হেডার থেকে API Key নেওয়া
+        const apiKey = req.headers['x-api-key'];
+        
+        if (!apiKey) {
+            return res.status(401).json({ error: "API Key missing" });
         }
 
+        // ২. রিয়েল ডাটাবেস কানেকশন (ভবিষ্যতের জন্য রেডি রাখা হলো)
+        // const tenant = await TenantModel.findOne({ apiKey });
+
+        // ৩. আপাতত টেস্টিংয়ের জন্য ডামি টেনান্ট কনটেক্সট
+        const tenant = {
+            id: "tenant_123",
+            plan: "pro", // 'free', 'pro', বা 'enterprise'
+            limits: 5000, // planLimit
+            currentUsage: 1500, // Billing layer চেক করার জন্য
+            status: "active", // 'active', 'past_due', 'canceled'
+            riskProfile: "normal"
+        };
+
+        if (!tenant) {
+            return res.status(403).json({ error: "Invalid API Key" });
+        }
+
+        // ৪. গ্লোবাল কনটেক্সট সেট করা হলো (যাতে পুরো সিস্টেম এটাকে চিনতে পারে)
         req.tenant = tenant;
+        
         next();
+
     } catch (error) {
-        res.status(500).json({ error: 'Internal Server Error in Gatekeeper.' });
+        next(error);
     }
 };
 
