@@ -12,17 +12,24 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
-// ৩. Database Connection
-const dbOptions = {
-    // useNewUrlParser: true, // নতুন ড্রাইভার ভার্সনে এগুলো অপশনাল, তবে স্ট্যাবিলিটির জন্য রাখা হলো
-    // useUnifiedTopology: true
-};
+// ৩. Health Check Route (সিস্টেমের হার্টবিট - এটি DB কানেকশনের আগেই রাখা ভালো)
+app.get('/health', (req, res) => {
+    res.json({
+        status: "UP",
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ৪. Database Connection
+const dbOptions = {};
 
 mongoose.connect(MONGO_URI, dbOptions)
     .then(() => {
         console.log('✅ Connected to MongoDB');
         
-        // ৪. Routes & Pipeline (DB কানেক্ট হওয়ার পর এগুলো অ্যাক্টিভ হবে)
+        // ৫. Routes & Pipeline
         // সব সিকিউরিটি রাউটের জন্য এই পাইপলাইন কাজ করবে
         app.use('/api/v1/secure', tenantResolver, sentinelPipeline);
 
@@ -35,14 +42,14 @@ mongoose.connect(MONGO_URI, dbOptions)
             });
         });
 
-        // ৫. Server Start
+        // ৬. Server Start
         app.listen(PORT, () => {
             console.log(`🚀 V10 Sentinel Empire Live on Port ${PORT}`);
         });
     })
     .catch(err => {
         console.error('❌ MongoDB Connection Error:', err);
-        process.exit(1); // DB ছাড়া সিস্টেম চলবে না, তাই প্রসেস বন্ধ করে দিবে
+        process.exit(1); 
     });
 
-module.exports = app; // Vercel বা টেস্টিংয়ের জন্য এক্সপোর্ট রাখা হলো
+module.exports = app;
