@@ -1,11 +1,10 @@
-version: '3.8'
-
+version: '2.2'  # Cloud Shell এবং সব ভার্সনের জন্য স্ট্যাবল
 services:
   # V10 Sentinel API (Main Application)
   api:
     build: .
     ports:
-      - "5000:5000"
+      - "8080:8080" # Cloud Shell এ প্রিভিউ দেখার জন্য ৮০৮০ জরুরি
     env_file:
       - .env
     depends_on:
